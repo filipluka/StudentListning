@@ -54,7 +54,7 @@ namespace StudentListning
                 context.Database.EnsureCreated();
                 //Display all students from database
                 var students = (from s in context.Students orderby s.LastName select s).Include(s => s.Grade).Include(u => u.University).Include(c => c.Course).ToList<Student>();
-                
+
 
                 if (students.Count != 0)
                 {
@@ -63,13 +63,14 @@ namespace StudentListning
                     foreach (var stdnt in students)
                     {
                         string name = stdnt.FirstName + " " + stdnt.LastName;
-                        string gradeName =  stdnt.Grade.GradeName;
+                        string gradeName = stdnt.Grade.GradeName;
                         string course = stdnt.Course.CourseName;
                         string university = stdnt.University.UniversityName;
                         Console.WriteLine("ID: {0}, Name: {1}, University: {2}, Program: {3}, Grade: {4}", stdnt.StudentID, name, university, course, gradeName);
                     }
-                   
-                } else
+
+                }
+                else
                 {
                     Console.WriteLine("The Database is empty:");
                 }
@@ -89,7 +90,7 @@ namespace StudentListning
 
             using (var context = new StudentDBContext(contextOptions))
             {
-                var searchedStudent = context.Students.First(std => std.StudentID == idToUpdate);
+                var searchedStudent = context.Students.Include(a => a.Address).Include(s => s.Grade).Include(u => u.University).Include(c => c.Course).First(std => std.StudentID == idToUpdate);
                 searchedStudent = showUpdateMeny(searchedStudent);
 
                 context.Students.Update(searchedStudent);
@@ -108,10 +109,15 @@ namespace StudentListning
 
             using (var context = new StudentDBContext(contextOptions))
             {
-                var searchedStudent = context.Students.First(std => std.StudentID == idToRemove);
-
+                var searchedStudent = context.Students.Include(s => s.Grade).Include(u => u.University).Include(c => c.Course).First(std => std.StudentID == idToRemove);
+                var searchedStudentCourse = searchedStudent.Course;
+                var searchedStudentUniversity = searchedStudent.University;
+                var searchedStudentGrade = searchedStudent.Grade;
                 //context.Students.Remove(searchedStudent);
                 context.Remove(searchedStudent);
+                context.RemoveRange(searchedStudentUniversity);
+                context.RemoveRange(searchedStudentCourse);
+                context.RemoveRange(searchedStudentGrade);
 
                 context.SaveChanges();
                 Console.WriteLine("Student removed from the Database");

@@ -22,60 +22,74 @@ namespace StudentListning
         //Create
         internal void AddStudentToDB(DbContextOptions<StudentDBContext> contextOptions)
         {
-            using (var context = new StudentDBContext(contextOptions))
+            try
             {
-                //Create and save new student
-                Console.WriteLine("Adding new student!");
+                using (var context = new StudentDBContext(contextOptions))
+                {
+                    //Create and save new student
+                    Console.WriteLine("Adding new student!");
 
 
-                var student = helper.AddStudent();
+                    var student = helper.AddStudent();
 
-                context.Database.EnsureCreated();
-                context.Students.Add(student);
+                    context.Database.EnsureCreated();
+                    context.Students.Add(student);
 
-                student.Address = helper.AddAddress();
-                student.University = helper.AddUniversity();
-                student.Grade = helper.AddGrade();
-                student.Course = helper.AddCourse();
-                context.SaveChanges();
+                    student.Address = helper.AddAddress();
+                    student.University = helper.AddUniversity();
+                    student.Grade = helper.AddGrade();
+                    student.Course = helper.AddCourse();
+                    context.SaveChanges();
 
-                Console.WriteLine("Student added to database ");
-                Console.WriteLine("Press any key to exit...");
-                Console.ReadKey();
+                    Console.WriteLine("Student added to database ");
+                    Console.WriteLine("Press any key to exit...");
+                    Console.ReadKey();
 
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.ToString());
             }
         }
 
         //Read
         internal void ListAllStudents(DbContextOptions<StudentDBContext> contextOptions)
         {
-            using (var context = new StudentDBContext(contextOptions))
+            try
             {
-                context.Database.EnsureCreated();
-                //Display all students from database
-                var students = (from s in context.Students orderby s.LastName select s).Include(s => s.Grade).Include(u => u.University).Include(c => c.Course).ToList<Student>();
-
-
-                if (students.Count != 0)
+                using (var context = new StudentDBContext(contextOptions))
                 {
-                    Console.WriteLine("List all Students from the Database:");
+                    context.Database.EnsureCreated();
+                    //Display all students from database
+                    var students = (from s in context.Students orderby s.LastName select s).Include(s => s.Grade).Include(u => u.University).Include(c => c.Course).ToList<Student>();
 
-                    foreach (var stdnt in students)
+
+                    if (students.Count != 0)
                     {
-                        string name = stdnt.FirstName + " " + stdnt.LastName;
-                        string gradeName = stdnt.Grade.GradeName;
-                        string course = stdnt.Course.CourseName;
-                        string university = stdnt.University.UniversityName;
-                        Console.WriteLine("ID: {0}, Name: {1}, University: {2}, Program: {3}, Grade: {4}", stdnt.StudentID, name, university, course, gradeName);
-                    }
+                        Console.WriteLine("List all Students from the Database:");
 
+                        foreach (var stdnt in students)
+                        {
+                            string name = stdnt.FirstName + " " + stdnt.LastName;
+                            string gradeName = stdnt.Grade.GradeName;
+                            string course = stdnt.Course.CourseName;
+                            string university = stdnt.University.UniversityName;
+                            Console.WriteLine("ID: {0}, Name: {1}, University: {2}, Program: {3}, Grade: {4}", stdnt.StudentID, name, university, course, gradeName);
+                        }
+
+                    }
+                    else
+                    {
+                        Console.WriteLine("The Database is empty:");
+                    }
+                    Console.WriteLine("Press any key to exit...");
+                    Console.ReadKey();
                 }
-                else
-                {
-                    Console.WriteLine("The Database is empty:");
-                }
-                Console.WriteLine("Press any key to exit...");
-                Console.ReadKey();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.ToString());
             }
         }
 
@@ -87,16 +101,29 @@ namespace StudentListning
             var idToUpdate = helper.FindStudent();
 
 
-
-            using (var context = new StudentDBContext(contextOptions))
+            try
             {
-                var searchedStudent = context.Students.Include(a => a.Address).Include(s => s.Grade).Include(u => u.University).Include(c => c.Course).First(std => std.StudentID == idToUpdate);
-                searchedStudent = showUpdateMeny(searchedStudent);
+                using (var context = new StudentDBContext(contextOptions))
+                {
+                    var searchedStudent = context.Students.Include(a => a.Address).Include(s => s.Grade).Include(u => u.University).Include(c => c.Course).FirstOrDefault(std => std.StudentID == idToUpdate);
+                    if (searchedStudent != null)
+                    {
+                        searchedStudent = showUpdateMeny(searchedStudent);
 
-                context.Students.Update(searchedStudent);
+                        context.Students.Update(searchedStudent);
 
-                context.SaveChanges();
-                Console.WriteLine("Student data updated in the Database");
+                        context.SaveChanges();
+                        Console.WriteLine("Student data updated in the Database");
+                    } else
+                    {
+                        Console.WriteLine("Student with this ID doesn't exist in the database");
+                        Console.ReadKey();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.ToString());
             }
         }
 
@@ -107,22 +134,37 @@ namespace StudentListning
 
             var idToRemove = helper.FindStudent();
 
-            using (var context = new StudentDBContext(contextOptions))
+            try
             {
-                var searchedStudent = context.Students.Include(s => s.Grade).Include(u => u.University).Include(c => c.Course).First(std => std.StudentID == idToRemove);
-                var searchedStudentCourse = searchedStudent.Course;
-                var searchedStudentUniversity = searchedStudent.University;
-                var searchedStudentGrade = searchedStudent.Grade;
-                //context.Students.Remove(searchedStudent);
-                context.Remove(searchedStudent);
-                context.RemoveRange(searchedStudentUniversity);
-                context.RemoveRange(searchedStudentCourse);
-                context.RemoveRange(searchedStudentGrade);
+                using (var context = new StudentDBContext(contextOptions))
+                {
+                    var searchedStudent = context.Students.Include(a => a.Address).Include(s => s.Grade).Include(u => u.University).Include(c => c.Course).FirstOrDefault(std => std.StudentID == idToRemove);
+                    if (searchedStudent != null)
+                    {
+                        var searchedStudentCourse = searchedStudent.Course;
+                        var searchedStudentUniversity = searchedStudent.University;
+                        var searchedStudentGrade = searchedStudent.Grade;
+                        context.Remove(searchedStudent);
+                        context.RemoveRange(searchedStudent.Address);
+                        context.RemoveRange(searchedStudentUniversity);
+                        context.RemoveRange(searchedStudentCourse);
+                        context.RemoveRange(searchedStudentGrade);
 
-                context.SaveChanges();
-                Console.WriteLine("Student removed from the Database");
-                Console.WriteLine("Press any key to exit...");
-                Console.ReadKey();
+                        context.SaveChanges();
+                        Console.WriteLine("Student removed from the Database");
+                        Console.WriteLine("Press any key to exit...");
+                        Console.ReadKey();
+                    }
+                    else
+                    {
+                        Console.WriteLine("Student with this ID doesn't exist in the database");
+                        Console.ReadKey();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.ToString());
             }
         }
 
